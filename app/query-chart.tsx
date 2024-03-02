@@ -1,4 +1,13 @@
 "use client";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ChartType, QueryResult } from "./action";
 import { AreaChart, Card } from "@tremor/react";
 
@@ -52,5 +61,24 @@ export function Chart(props: {
     );
   }
   if (chartType == "table") {
+    return (
+      <Table>
+        <TableCaption>{props.title}</TableCaption>
+        <TableHeader>
+          <TableRow>
+            {queryResult.columns.map((col, i) => (
+              <TableCell key={i}>{col}</TableCell>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            {queryResult.results.map((row, i) => (
+              <TableCell key={i}>{row}</TableCell>
+            ))}
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
   }
 }

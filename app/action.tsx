@@ -194,6 +194,7 @@ async function submitUserMessage(content: string) {
           return word;
         })
         .join(" ");
+
       query = `${newSelect} FROM ${from}`;
 
       // replace $sent_at with timestamp
