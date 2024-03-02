@@ -36,6 +36,55 @@ const openai = new OpenAI({
 export const chartTypes = ["table", "chart", "number"] as const;
 export type ChartType = (typeof chartTypes)[number];
 
+const zOpenAIQueryResponse = z.object({
+  query: z.string().describe(`
+  Creates a HogQL ClickHouse SQL Query for the given query.
+  HogQL Rules:
+
+  HogQL is based on ClickHouse SQL.
+  
+  The following ClickHouse functions are available:
+  ${supportedFunctions.join(", ")}
+
+  The following ClickHouse aggregate functions are available:
+  ${supportedAggregates.join(", ")}
+  
+  If an event or property name has a space, it should be wrapped in quotes.
+  
+  IMPORTANT: To filter to a specific event, use FROM events WHERE event = '{event_name}'
+  The only table that exists is events, every query will select from events.
+  
+  To get events older than 5 days, use the expression:
+  
+  dateDiff('day', timestamp, now()) > 5
+  
+  IMPORTANT: Don't end queries with a semicolon.
+  IMPORTANT: Put the whole query in one line with no newlines.
+  
+  Use inclusive matching unless explicitly stated otherwise, i.e strings including the value rather than equal to
+  For example, if you want to filter out all of Google events it would be: WHERE properties.{property_name} NOT LIKE '%Google%'
+  
+  Make comparisons case insensitive by using the ILIKE operator. For example, WHERE properties.{property_name} ILIKE '%google%'
+
+  Timestamp is a DateTime type.
+  
+  To count the number of events, you can use countIf(event = '{event_name}')
+
+  IMPORTANT: To filter to a specific property, use WHERE properties.{property_name} = {value}
+  PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
+  PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
+  PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
+  PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
+  If you do not prefix the property with \`properties.\`, the query will not work.
+  In the select clause, you have to use properties.{property_name} to select a property.
+
+  `),
+  format: z.enum(chartTypes).describe("The format of the result"),
+  title: z.string().optional().describe("The title of the chart"),
+});
+
+type OpenAIQueryResponse = z.infer<typeof zOpenAIQueryResponse>;
+
 export type QueryResult = {
   columns: string[];
   results: (number | string)[][];
@@ -72,6 +121,9 @@ async function submitUserMessage(content: string) {
   You are a data analytics bot for the product PostHog and you can help users query their data.
   You and the user can discuss their events and the user can request to create new queries or refine existing ones, in the UI.
   
+  Messages inside [] means that it's a UI element or a user event. For example:
+  - "[Results for query: query with format: format and title: title and description: description. with data" means that a chart/table/number card is shown to that user.
+
   The user has the following events and properties:
   ${stingifiedEvents}
         
@@ -80,10 +132,6 @@ async function submitUserMessage(content: string) {
     model: "gpt-3.5-turbo",
     stream: true,
     messages: [
-      // TODO: Add back to prompt
-      // Messages inside [] means that it's a UI element or a user event. For example:
-      // - "[Price of AAPL = 100]" means that an interface of the stock price of AAPL is shown to the user.
-      // - "[User has changed the amount of AAPL to 10]" means that the user has changed the amount of AAPL to 10 in the UI.
       {
         role: "system",
         content: prompt,
@@ -99,51 +147,7 @@ async function submitUserMessage(content: string) {
         name: "query_data",
         description: `Gets the results for a query about the data
         `,
-        parameters: z.object({
-          query: z.string().describe(`
-          Creates a HogQL ClickHouse SQL Query for the given query.
-          HogQL Rules:
-
-          HogQL is based on ClickHouse SQL.
-          
-          The following ClickHouse functions are available:
-          ${supportedFunctions.join(", ")}
-
-          The following ClickHouse aggregate functions are available:
-          ${supportedAggregates.join(", ")}
-          
-          If an event or property name has a space, it should be wrapped in quotes.
-          
-          IMPORTANT: To filter to a specific event, use FROM events WHERE event = '{event_name}'
-          The only table that exists is events, every query will select from events.
-          
-          To get events older than 5 days, use the expression:
-          
-          dateDiff('day', timestamp, now()) > 5
-          
-          IMPORTANT: Don't end queries with a semicolon.
-          IMPORTANT: Put the whole query in one line with no newlines.
-          
-          Use inclusive matching unless explicitly stated otherwise, i.e strings including the value rather than equal to
-          For example, if you want to filter out all of Google events it would be: WHERE properties.{property_name} NOT LIKE '%Google%'
-          
-          Make comparisons case insensitive by using the ILIKE operator. For example, WHERE properties.{property_name} ILIKE '%google%'
-
-          Timestamp is a DateTime type.
-          
-          To count the number of events, you can use countIf(event = '{event_name}')
-
-          IMPORTANT: To filter to a specific property, use WHERE properties.{property_name} = {value}
-          PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
-          PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
-          PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
-          PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
-          If you do not prefix the property with \`properties.\`, the query will not work.
-          In the select clause, you have to use properties.{property_name} to select a property.
-
-          `),
-          format: z.enum(chartTypes).describe("The format of the result"),
-        }),
+        parameters: zOpenAIQueryResponse,
       },
     ],
     temperature: 0,
@@ -163,20 +167,15 @@ async function submitUserMessage(content: string) {
 
   completion.onFunctionCall(
     "query_data",
-    async ({
-      query,
-      format,
-    }: {
-      query: string;
-      format: (typeof chartTypes)[number];
-    }) => {
+    async (input: OpenAIQueryResponse) => {
+      const { format, title } = input;
+      let query = input.query;
       // for the query, split it the start to FROM
       // then split by spaces
       // for each word, check if it is a property
       // if it is and it does not have properties. in front of it, add it
       // then join the words back together
       // then join the query back together
-      console.log("Raw query: ", query);
       const splitQuery = query.split("FROM");
       const from = splitQuery[1];
       const select = splitQuery[0];
@@ -199,14 +198,6 @@ async function submitUserMessage(content: string) {
 
       // replace $sent_at with timestamp
       query = query.replace("$sent_at", "timestamp");
-      reply.update(
-        <BotCard>
-          <StocksSkeleton />
-          <div className="max-w-[600px]">
-            <Code lang="sql">{query}</Code>
-          </div>
-        </BotCard>
-      );
 
       const payload = {
         query: {
@@ -230,16 +221,14 @@ async function submitUserMessage(content: string) {
 
       reply.done(
         <BotCard>
-          <div className="py-4">
-            <div className="h-[300px]">
-              <Chart chartType={format} queryResult={queryRes} />
-            </div>
-            <div className="py-4 max-w-[600px]">
-              <SystemMessage>
+          <SystemMessage>
+            <div className="py-4">
+              <Chart chartType={format} queryResult={queryRes} title={title} />
+              <div className="py-4">
                 <Code lang="sql">{query}</Code>
-              </SystemMessage>
+              </div>
             </div>
-          </div>
+          </SystemMessage>
         </BotCard>
       );
 
@@ -248,7 +237,7 @@ async function submitUserMessage(content: string) {
         {
           role: "function",
           name: "query_data",
-          content: JSON.stringify(query),
+          content: `[Results for query: ${query} with format: ${format} and title: ${title}]`,
         },
       ]);
     }

@@ -51,25 +51,10 @@ async function AutoSuggested() {
   for (let i = 0; i < 4; i++) {
     buttons.push(completed[i]);
   }
-  return (
-    <div className="hidden md:grid grid-cols-2  gap-4 py-4">
-      {buttons.map((button, i) => (
-        <Button key={i} variant="outline" className="px-4 py-10 text-left">
-          {button}
-        </Button>
-      ))}
-    </div>
-  );
+  return buttons;
 }
 
-export default function Page() {
-  return (
-    <ClientPage
-      zeroState={
-        <Suspense fallback={<EventsSkeleton />}>
-          <AutoSuggested />
-        </Suspense>
-      }
-    />
-  );
+export default async function Page() {
+  const suggestions = await AutoSuggested();
+  return <ClientPage zeroState={suggestions} />;
 }

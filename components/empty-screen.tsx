@@ -4,10 +4,8 @@ import { IconArrowRight } from "@/components/ui/icons";
 
 export function EmptyScreen({
   submitMessage,
-  zeroState,
 }: {
   submitMessage: (message: string) => void;
-  zeroState: React.ReactNode;
 }) {
   return (
     <div className="mx-auto max-w-2xl px-4">

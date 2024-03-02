@@ -21,7 +21,7 @@ import { ChatList } from "@/components/chat-list";
 import { EmptyScreen } from "@/components/empty-screen";
 import { toast } from "@/components/ui/use-toast";
 
-export function ClientPage(props: { zeroState: React.ReactNode }) {
+export function ClientPage(props: { zeroState: string[] }) {
   const [messages, setMessages] = useUIState<typeof AI>();
   const { submitUserMessage } = useActions();
   const [inputValue, setInputValue] = useState("");
@@ -78,14 +78,38 @@ export function ClientPage(props: { zeroState: React.ReactNode }) {
                 responseMessage,
               ]);
             }}
-            zeroState={props.zeroState}
           />
         )}
         <ChatScrollAnchor trackVisibility={true} />
       </div>
       <div className="fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80 peer-[[data-state=open]]:group-[]:lg:pl-[250px] peer-[[data-state=open]]:group-[]:xl:pl-[300px]">
         <div className="mx-auto sm:max-w-2xl sm:px-4">
-          {messages.length == 0 ? props.zeroState : null}
+          {messages.length == 0 ? (
+            <>
+              <div className="hidden md:grid grid-cols-2  gap-4 py-4">
+                {props.zeroState.map((button, i) => (
+                  <Button
+                    key={i}
+                    variant="outline"
+                    className="px-4 py-10 text-left"
+                    onClick={async () => {
+                      const responseMessage = await submitUserMessage(button);
+                      setMessages((currentMessages) => [
+                        {
+                          id: Date.now(),
+                          display: <UserMessage>{button}</UserMessage>,
+                        },
+                        ...currentMessages,
+                        responseMessage,
+                      ]);
+                    }}
+                  >
+                    {button}
+                  </Button>
+                ))}
+              </div>
+            </>
+          ) : null}
           <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
             <form
               ref={formRef}
