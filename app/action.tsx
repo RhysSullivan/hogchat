@@ -170,32 +170,26 @@ async function submitUserMessage(content: string) {
     async (input: OpenAIQueryResponse) => {
       const { format, title } = input;
       let query = input.query;
-      // for the query, split it the start to FROM
-      // then split by spaces
-      // for each word, check if it is a property
-      // if it is and it does not have properties. in front of it, add it
-      // then join the words back together
-      // then join the query back together
-      const splitQuery = query.split("FROM");
-      const from = splitQuery[1];
-      const select = splitQuery[0];
-      const splitSelect = select.split(" ")!;
       const propertyNames = new Set(
         events.flatMap((event) =>
           event.properties.map((property) => property.name)
         )
       );
 
-      const newSelect = splitSelect
-        .map((word) => {
-          if (propertyNames.has(word) && !word.startsWith("properties.")) {
-            return `properties.${word}`;
+      // for each word in propertyNames, replace it with properties.{word} unless it's already prefixed with properties.
+      // if the property name has a space in it, wrap it in quotes
+      query = query.replace(
+        new RegExp(Array.from(propertyNames).join("|"), "g"),
+        (match) => {
+          if (match.includes(" ")) {
+            return `properties.${match}`;
           }
-          return word;
-        })
-        .join(" ");
-
-      query = `${newSelect} FROM ${from}`;
+          if (match.startsWith("properties.")) {
+            return match;
+          }
+          return `properties.${match}`;
+        }
+      );
 
       // replace $sent_at with timestamp
       query = query.replace("$sent_at", "timestamp");

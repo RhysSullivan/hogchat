@@ -72,11 +72,13 @@ export function Chart(props: {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            {queryResult.results.map((row, i) => (
-              <TableCell key={i}>{row}</TableCell>
-            ))}
-          </TableRow>
+          {queryResult.results.map((row, i) => (
+            <TableRow key={i}>
+              {row.map((cell, j) => (
+                <TableCell key={j}>{cell}</TableCell>
+              ))}
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     );
