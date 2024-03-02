@@ -30,6 +30,14 @@ export async function Header() {
             <span className="hidden ml-2 md:flex">GitHub</span>
           </a>
         </Button>
+        <Button asChild>
+          <a
+            href="https://twitter.com/intent/user?screen_name=RhysSullivan"
+            target="_blank"
+          >
+            <IconVercel />
+          </a>
+        </Button>
       </div>
     </header>
   );

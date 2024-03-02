@@ -106,7 +106,7 @@ export type PostHogEndpoints = {
     };
 };
 
-function fetchFromPosthog<T extends keyof PostHogEndpoints>(
+export function fetchFromPosthog<T extends keyof PostHogEndpoints>(
     endpoint: T,
     options: {
         queryParams?: PostHogEndpoints[T]["queryParams"];

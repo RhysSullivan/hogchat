@@ -21,8 +21,12 @@ HogQL Rules:
 
 If an event or property name has a space, it should be wrapped in quotes.
 
-To filter to a specific event, use FROM events WHERE event = {event_name}
+To filter to a specific event, use FROM events WHERE event = '{event_name}'
 
 To filter to a specific property, use WHERE properties.{property_name} = {value}
 
+To get events older than 5 days, use the expression:
 
+dateDiff('day', timestamp, now()) > 5
+
+Don't end queries with a semicolon.
