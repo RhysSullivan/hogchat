@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Textarea from 'react-textarea-autosize';
+import * as React from "react";
+import Textarea from "react-textarea-autosize";
 
-import { useActions, useUIState } from 'ai/rsc';
-import { UserMessage } from '@/components/llm-stocks/message';
-import { type AI } from '@/app/action';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
+import { useActions, useUIState } from "ai/rsc";
+import { UserMessage } from "@/components/llm-stocks/message";
+import { type AI } from "@/app/action";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { IconArrowElbow, IconPlus } from "@/components/ui/icons";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
-import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+} from "@/components/ui/tooltip";
+import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export function PromptForm() {
   const { formRef, onKeyDown } = useEnterSubmit();
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const { submitUserMessage } = useActions();
-  const [inputValue, setInputValue] = React.useState('');
+  const [inputValue, setInputValue] = React.useState("");
   const [_, setMessages] = useUIState<typeof AI>();
 
   React.useEffect(() => {
@@ -37,15 +37,15 @@ export function PromptForm() {
         e.preventDefault();
         // Blur focus on mobile
         if (window.innerWidth < 600) {
-          e.target['message']?.blur();
+          e.target["message"]?.blur();
         }
 
         const value = inputValue.trim();
-        setInputValue('');
+        setInputValue("");
         if (!value) return;
 
         // Add user message UI
-        setMessages(currentMessages => [
+        setMessages((currentMessages) => [
           ...currentMessages,
           {
             id: Date.now(),
@@ -55,7 +55,7 @@ export function PromptForm() {
 
         // Submit and get response message
         const responseMessage = await submitUserMessage(value);
-        setMessages(currentMessages => [...currentMessages, responseMessage]);
+        setMessages((currentMessages) => [...currentMessages, responseMessage]);
       }}
       ref={formRef}
     >
@@ -63,14 +63,14 @@ export function PromptForm() {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={e => {
+              onClick={(e) => {
                 e.preventDefault();
                 router.refresh();
-                router.push('/');
+                router.push("/");
               }}
               className={cn(
-                buttonVariants({ size: 'sm', variant: 'outline' }),
-                'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4',
+                buttonVariants({ size: "sm", variant: "outline" }),
+                "absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4"
               )}
             >
               <IconPlus />
@@ -90,14 +90,14 @@ export function PromptForm() {
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
-          onChange={e => setInputValue(e.target.value)}
+          onChange={(e) => setInputValue(e.target.value)}
           placeholder="Send a message."
-          className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
+          className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus:border-black border-none outline-none focus-within:outline-none sm:text-sm"
         />
         <div className="absolute right-0 top-4 sm:right-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button type="submit" size="icon" disabled={inputValue === ''}>
+              <Button type="submit" size="icon" disabled={inputValue === ""}>
                 <IconArrowElbow />
                 <span className="sr-only">Send message</span>
               </Button>

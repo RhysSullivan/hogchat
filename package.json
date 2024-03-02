@@ -11,6 +11,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx}\" --cache"
   },
   "dependencies": {
+    "@headlessui/react": "^1.7.18",
+    "@headlessui/tailwindcss": "^0.2.0",
     "@mdx-js/loader": "^3.0.1",
     "@mdx-js/react": "^3.0.1",
     "@next/mdx": "^14.1.1",
@@ -20,11 +22,14 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.0.7",
+    "@remixicon/react": "^4.2.0",
+    "@tremor/react": "^3.14.1",
     "@types/mdx": "^2.0.11",
     "@upstash/redis": "^1.28.4",
     "@vercel/analytics": "^1.2.2",
     "@vercel/kv": "^1.0.1",
     "ai": "3.0.1",
+    "bright": "^0.8.4",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "d3-scale": "^4.0.2",
@@ -45,6 +50,7 @@
     "zod-to-json-schema": "3.22.4"
   },
   "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/typography": "^0.5.10",
     "@types/d3-scale": "^4.0.8",
     "@types/node": "^20",

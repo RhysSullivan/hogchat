@@ -27,12 +27,19 @@ import { StocksSkeleton } from "@/components/llm-stocks/stocks-skeleton";
 import { fetchAllEventsWithProperties } from "./posthog";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { supportedAggregates, supportedFunctions } from "./supported";
-
+import { Chart } from "./query-chart";
+import { Code } from "bright";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 export const chartTypes = ["table", "chart", "number"] as const;
+export type ChartType = (typeof chartTypes)[number];
+
+export type QueryResult = {
+  columns: string[];
+  results: (number | string)[][];
+};
 
 async function submitUserMessage(content: string) {
   "use server";
@@ -124,6 +131,8 @@ async function submitUserMessage(content: string) {
 
           Timestamp is a DateTime type.
           
+          To count the number of events, you can use countIf(event = '{event_name}')
+
           IMPORTANT: To filter to a specific property, use WHERE properties.{property_name} = {value}
           PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
           PROPERTY VALUES HAVE TO BE PREFIXED WITH \`properties.\`
@@ -167,6 +176,7 @@ async function submitUserMessage(content: string) {
       // if it is and it does not have properties. in front of it, add it
       // then join the words back together
       // then join the query back together
+      console.log("Raw query: ", query);
       const splitQuery = query.split("FROM");
       const from = splitQuery[1];
       const select = splitQuery[0];
@@ -192,6 +202,9 @@ async function submitUserMessage(content: string) {
       reply.update(
         <BotCard>
           <StocksSkeleton />
+          <div className="max-w-[600px]">
+            <Code lang="sql">{query}</Code>
+          </div>
         </BotCard>
       );
 
@@ -213,15 +226,20 @@ async function submitUserMessage(content: string) {
         }
       );
 
-      const { results } = await res.json();
-      console.log(results);
+      const queryRes = (await res.json()) as QueryResult;
 
       reply.done(
         <BotCard>
-          <div>
-            <span>{query}</span>
+          <div className="py-4">
+            <div className="h-[300px]">
+              <Chart chartType={format} queryResult={queryRes} />
+            </div>
+            <div className="py-4 max-w-[600px]">
+              <SystemMessage>
+                <Code lang="sql">{query}</Code>
+              </SystemMessage>
+            </div>
           </div>
-          <span>{JSON.stringify(results)}</span>
         </BotCard>
       );
 

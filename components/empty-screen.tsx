@@ -18,9 +18,6 @@ export function EmptyScreen({
           insights, compare events, and visualize your data.
         </p>
       </div>
-      <p className="leading-normal text-muted-foreground text-[0.8rem] text-center">
-        Note: This is not real financial advice.
-      </p>
     </div>
   );
 }
