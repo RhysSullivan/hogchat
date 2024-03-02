@@ -195,6 +195,9 @@ async function submitUserMessage(content: string) {
       // replace $sent_at with timestamp
       query = query.replace("$sent_at", "timestamp");
 
+      // replace `properties."timestamp"` with `timestamp`
+      query = query.replace(/properties\."timestamp"/g, "timestamp");
+
       // gpt may generate like AVG( instead of avg( - we need to replace the functions with their intended case
 
       const payload = {

@@ -39,7 +39,7 @@ export function Chart(props: {
       });
 
       const cats = queryResult.columns.filter(
-        (col) => col.toLowerCase() !== timeField
+        (col) => col.toLowerCase() !== timeField.toLowerCase()
       );
 
       return (
