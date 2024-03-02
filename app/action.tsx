@@ -83,6 +83,10 @@ const zOpenAIQueryResponse = z.object({
   `),
   format: z.enum(chartTypes).describe("The format of the result"),
   title: z.string().optional().describe("The title of the chart"),
+  timeField: z
+    .string()
+    .optional()
+    .describe("If timeseries data, the column to use as the time field"),
 });
 
 type OpenAIQueryResponse = z.infer<typeof zOpenAIQueryResponse>;
@@ -185,7 +189,7 @@ async function submitUserMessage(content: string) {
   completion.onFunctionCall(
     "query_data",
     async (input: OpenAIQueryResponse) => {
-      const { format, title } = input;
+      const { format, title, timeField } = input;
       let query = input.query;
 
       // replace $sent_at with timestamp
@@ -218,7 +222,12 @@ async function submitUserMessage(content: string) {
         <BotCard>
           <SystemMessage>
             <div className="py-4">
-              <Chart chartType={format} queryResult={queryRes} title={title} />
+              <Chart
+                chartType={format}
+                queryResult={queryRes}
+                title={title}
+                timeField={timeField}
+              />
               <div className="py-4">
                 <Code lang="sql">{query}</Code>
               </div>

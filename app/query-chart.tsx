@@ -16,51 +16,30 @@ export function Chart(props: {
   chartType: ChartType;
   title?: string;
   description?: string;
+  timeField?: string;
 }) {
+  let { timeField = "date" } = props;
   try {
     const { queryResult, chartType } = props;
 
     if (chartType === "chart") {
       const firstResult = queryResult.results[0] ?? [];
       let formatted: { [key: string]: any }[] = [];
-      if (firstResult.length <= 2) {
-        formatted = queryResult.results.map((row) => {
-          const obj: { [key: string]: any } = {};
-          queryResult.columns.forEach((col, i) => {
-            if (col.toLowerCase() === "date") {
-              obj["date"] = row[i];
-            } else {
-              obj[col] = row[i];
-            }
-          });
-          return obj;
-        });
-      } else {
-        const records = new Map<string, any>();
-        const dateIndex = queryResult.columns.findIndex(
-          (col) => col.toLowerCase() === "date"
-        );
 
-        queryResult.results.forEach((entry) => {
-          const date = entry[dateIndex];
-          const existing = records.get(date as string);
-          if (existing === undefined) {
-            // find which of the remaining values is a number and not a string
-            records.set(date as string, {
-              [entry[1]!]: entry[2],
-            });
+      formatted = queryResult.results.map((row) => {
+        const obj: { [key: string]: any } = {};
+        queryResult.columns.forEach((col, i) => {
+          if (col.toLowerCase() === timeField) {
+            obj[timeField] = row[i];
           } else {
-            existing[entry[1]!] = entry[2];
+            obj[col] = row[i];
           }
         });
-        formatted = [...records.keys()].map((key) => ({
-          date: key,
-          ...records.get(key),
-        }));
-      }
+        return obj;
+      });
 
       const cats = queryResult.columns.filter(
-        (col) => col.toLowerCase() !== "date"
+        (col) => col.toLowerCase() !== timeField
       );
 
       return (
@@ -68,7 +47,7 @@ export function Chart(props: {
           <span className="text-lg font-medium dark:text-dark-tremor-content-strong">
             {props.title}
           </span>
-          <AreaChart categories={cats} index={"date"} data={formatted} />
+          <AreaChart categories={cats} index={timeField} data={formatted} />
         </>
       );
     }
@@ -103,7 +82,9 @@ export function Chart(props: {
               {queryResult.results.map((row, i) => (
                 <TableRow key={i}>
                   {row.map((cell, j) => (
-                    <TableCell key={j}>{cell}</TableCell>
+                    <TableCell className="max-w-[220px]" key={j}>
+                      {cell}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))}
