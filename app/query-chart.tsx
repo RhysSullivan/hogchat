@@ -29,7 +29,7 @@ export function Chart(props: {
       formatted = queryResult.results.map((row) => {
         const obj: { [key: string]: any } = {};
         queryResult.columns.forEach((col, i) => {
-          if (col.toLowerCase() === timeField) {
+          if (col.toLowerCase() === timeField.toLowerCase()) {
             obj[timeField] = row[i];
           } else {
             obj[col] = row[i];
