@@ -1,183 +1,75 @@
-'use client';
+import OpenAI from "openai";
+import { ClientPage } from "./client-page";
+import { fetchAllEventsWithProperties } from "./posthog";
+import { EventsSkeleton } from "@/components/llm-stocks/events-skeleton";
+import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
 
-import { useEffect, useRef, useState } from 'react';
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "",
+});
 
-import { useUIState, useActions, useAIState } from 'ai/rsc';
-import { UserMessage } from '@/components/llm-stocks/message';
-
-import { type AI } from './action';
-import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor';
-import { FooterText } from '@/components/footer';
-import Textarea from 'react-textarea-autosize';
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
-import { Button } from '@/components/ui/button';
-import { ChatList } from '@/components/chat-list';
-import { EmptyScreen } from '@/components/empty-screen';
-import { toast } from '@/components/ui/use-toast';
+async function AutoSuggested() {
+  const events = await fetchAllEventsWithProperties({
+    posthogProjectId: process.env.POSTHOG_PROJECT_ID,
+    posthogToken: process.env.POSTHOG_API_KEY,
+  });
+  const suggestedQueries = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "system",
+        content: `\
+        You are a data analytics bot for the product PostHog and you can help users query their data.
+        You and the user can discuss their events and the user can request to create new queries or refine existing ones, in the UI.
+        To help the user, you can suggest queries based on the events and their properties.
+        Here are some examples of queries you can suggest to the user based on the events and their properties:
+        1. Show me the number of users who have signed up in the last 30 days.
+        2. How many page views did we have in the last 7 days?
+        3. How many page views came from Google?
+        
+        Here are the events and their properties:
+        ${events
+          .map(
+            (event) =>
+              `${event.name} (${event.properties
+                .map((property) => property.name)
+                .join(", ")})`
+          )
+          .join("\n")}
+        Come up with 4 queries based on the events and their properties, and suggest them to the user.
+        Each query should be a single sentence and on a new line. Do not number, bullet point, or add anything extra the queries, just write them out as plain text.
+        `,
+      },
+    ],
+  });
+  const completed = (
+    suggestedQueries.choices.at(0)?.message?.content ?? ""
+  ).split("\n");
+  // put the results into 4 evenly sized buttons, aligned in a 2x2 grid
+  const buttons = [];
+  for (let i = 0; i < 4; i++) {
+    buttons.push(completed[i]);
+  }
+  return (
+    <div className="hidden md:grid grid-cols-2  gap-4 py-4">
+      {buttons.map((button, i) => (
+        <Button key={i} variant="outline" className="px-4 py-10 text-left">
+          {button}
+        </Button>
+      ))}
+    </div>
+  );
+}
 
 export default function Page() {
-  const [messages, setMessages] = useUIState<typeof AI>();
-  const { submitUserMessage } = useActions();
-  const [inputValue, setInputValue] = useState('');
-  const { formRef, onKeyDown } = useEnterSubmit();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/') {
-        if (
-          e.target &&
-          ['INPUT', 'TEXTAREA'].includes((e.target as any).nodeName)
-        ) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        if (inputRef?.current) {
-          inputRef.current.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [inputRef]);
-
   return (
-    <div>
-      <div className="pb-[200px] pt-4 md:pt-10">
-        {messages.length ? (
-          <>
-            <ChatList messages={messages} />
-          </>
-        ) : (
-          <EmptyScreen
-            submitMessage={async message => {
-              // Add user message UI
-              setMessages(currentMessages => [
-                ...currentMessages,
-                {
-                  id: Date.now(),
-                  display: <UserMessage>{message}</UserMessage>,
-                },
-              ]);
-
-              // Submit and get response message
-              const responseMessage = await submitUserMessage(message);
-              setMessages(currentMessages => [
-                ...currentMessages,
-                responseMessage,
-              ]);
-            }}
-          />
-        )}
-        <ChatScrollAnchor trackVisibility={true} />
-      </div>
-      <div className="fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80 peer-[[data-state=open]]:group-[]:lg:pl-[250px] peer-[[data-state=open]]:group-[]:xl:pl-[300px]">
-        <div className="mx-auto sm:max-w-2xl sm:px-4">
-          <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
-            <form
-              ref={formRef}
-              onSubmit={async (e: any) => {
-                e.preventDefault();
-
-                // Blur focus on mobile
-                if (window.innerWidth < 600) {
-                  e.target['message']?.blur();
-                }
-
-                const value = inputValue.trim();
-                setInputValue('');
-                if (!value) return;
-
-                // Add user message UI
-                setMessages(currentMessages => [
-                  ...currentMessages,
-                  {
-                    id: Date.now(),
-                    display: <UserMessage>{value}</UserMessage>,
-                  },
-                ]);
-
-                try {
-                  // Submit and get response message
-                  const responseMessage = await submitUserMessage(value);
-                  setMessages(currentMessages => [
-                    ...currentMessages,
-                    responseMessage,
-                  ]);
-                } catch (error) {
-                  toast({
-                    title: 'Something went wrong',
-                    description: 'Please try again later',
-                    duration: 5000,
-                  });
-                }
-              }}
-            >
-              <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4"
-                      onClick={e => {
-                        e.preventDefault();
-                        window.location.reload();
-                      }}
-                    >
-                      <IconPlus />
-                      <span className="sr-only">New Chat</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>New Chat</TooltipContent>
-                </Tooltip>
-                <Textarea
-                  ref={inputRef}
-                  tabIndex={0}
-                  onKeyDown={onKeyDown}
-                  placeholder="Send a message."
-                  className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
-                  autoFocus
-                  spellCheck={false}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  name="message"
-                  rows={1}
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                />
-                <div className="absolute right-0 top-4 sm:right-4">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="submit"
-                        size="icon"
-                        disabled={inputValue === ''}
-                      >
-                        <IconArrowElbow />
-                        <span className="sr-only">Send message</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Send message</TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
-            </form>
-            <FooterText className="hidden sm:block" />
-          </div>
-        </div>
-      </div>
-    </div>
+    <ClientPage
+      zeroState={
+        <Suspense fallback={<EventsSkeleton />}>
+          <AutoSuggested />
+        </Suspense>
+      }
+    />
   );
 }

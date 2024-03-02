@@ -1,0 +1,28 @@
+Concept:
+Talk to your PostHog data, the user provides their PostHog API key 
+and then they can ask questions about their data.
+
+Question examples:
+
+- How many users signed up last week?
+- What is the average number of events per user?
+- What were the top 10 pages visited last month?
+
+
+functions:
+- list suggestions
+- get data
+
+
+
+
+
+HogQL Rules:
+
+If an event or property name has a space, it should be wrapped in quotes.
+
+To filter to a specific event, use FROM events WHERE event = {event_name}
+
+To filter to a specific property, use WHERE properties.{property_name} = {value}
+
+
