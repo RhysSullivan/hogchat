@@ -16,6 +16,7 @@ async function AutoSuggested() {
   });
   const suggestedQueries = await openai.chat.completions.create({
     model: "gpt-3.5-turbo",
+    temperature: 0.8,
     messages: [
       {
         role: "system",

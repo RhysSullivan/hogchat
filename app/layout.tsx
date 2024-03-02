@@ -59,8 +59,8 @@ export default async function RootLayout({
         <AI>
           <Providers
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="dark"
+            enableSystem={false}
             disableTransitionOnChange
           >
             <div className="flex flex-col min-h-screen">
@@ -76,3 +76,5 @@ export default async function RootLayout({
     </html>
   );
 }
+
+export const runtime = "edge";
