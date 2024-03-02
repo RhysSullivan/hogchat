@@ -67,8 +67,7 @@ const zOpenAIQueryResponse = z.object({
   dateDiff('day', timestamp, now()) > 5
   
   IMPORTANT: Don't end queries with a semicolon.
-  IMPORTANT: Put the whole query in one line with no newlines.
-  
+    
   Use inclusive matching unless explicitly stated otherwise, i.e strings including the value rather than equal to
   For example, if you want to filter out all of Google events it would be: WHERE properties.{property_name} NOT LIKE '%Google%'
   
@@ -77,6 +76,8 @@ const zOpenAIQueryResponse = z.object({
   Timestamp is a DateTime type.
   
   To count the number of events, you can use countIf(event = '{event_name}')
+
+  DO NOT USE BETWEEN for date ranges, it is not supported.
 
   If breaking down data that isn't a timeseries, order it by descending count.
   `),
@@ -130,8 +131,12 @@ async function submitUserMessage(content: string) {
         
   Keep the properties. prefix and the quotes around the property names when referring to properties.
   Keep the quotes around the event names when referring to events.
+  
+  The current time is ${new Date().toISOString()}.
 
-  Feel free to be creative with suggesting queries and follow ups based on what you think. Keep responses short and to the point.`;
+  Feel free to be creative with suggesting queries and follow ups based on what you think. Keep responses short and to the point.
+  
+  `;
   const completion = runOpenAICompletion(openai, {
     model: "gpt-4-0125-preview",
     stream: true,
@@ -182,14 +187,11 @@ async function submitUserMessage(content: string) {
     async (input: OpenAIQueryResponse) => {
       const { format, title } = input;
       let query = input.query;
-      const propertyNames = new Set(
-        events.flatMap((event) =>
-          event.properties.map((property) => property.name)
-        )
-      );
 
       // replace $sent_at with timestamp
       query = query.replace("$sent_at", "timestamp");
+
+      // gpt may generate like AVG( instead of avg( - we need to replace the functions with their intended case
 
       const payload = {
         query: {
@@ -197,6 +199,7 @@ async function submitUserMessage(content: string) {
           query,
         },
       };
+
       const res = await fetch(
         `https://us.posthog.com/api/projects/${process.env.POSTHOG_PROJECT_ID}/query/`,
         {

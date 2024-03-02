@@ -21,17 +21,43 @@ export function Chart(props: {
     const { queryResult, chartType } = props;
 
     if (chartType === "chart") {
-      const formatted = queryResult.results.map((row) => {
-        const obj: { [key: string]: any } = {};
-        queryResult.columns.forEach((col, i) => {
-          if (col.toLowerCase() === "date") {
-            obj["date"] = row[i];
+      const firstResult = queryResult.results[0] ?? [];
+      let formatted: { [key: string]: any }[] = [];
+      if (firstResult.length <= 2) {
+        formatted = queryResult.results.map((row) => {
+          const obj: { [key: string]: any } = {};
+          queryResult.columns.forEach((col, i) => {
+            if (col.toLowerCase() === "date") {
+              obj["date"] = row[i];
+            } else {
+              obj[col] = row[i];
+            }
+          });
+          return obj;
+        });
+      } else {
+        const records = new Map<string, any>();
+        const dateIndex = queryResult.columns.findIndex(
+          (col) => col.toLowerCase() === "date"
+        );
+
+        queryResult.results.forEach((entry) => {
+          const date = entry[dateIndex];
+          const existing = records.get(date as string);
+          if (existing === undefined) {
+            // find which of the remaining values is a number and not a string
+            records.set(date as string, {
+              [entry[1]!]: entry[2],
+            });
           } else {
-            obj[col] = row[i];
+            existing[entry[1]!] = entry[2];
           }
         });
-        return obj;
-      });
+        formatted = [...records.keys()].map((key) => ({
+          date: key,
+          ...records.get(key),
+        }));
+      }
 
       const cats = queryResult.columns.filter(
         (col) => col.toLowerCase() !== "date"
@@ -63,31 +89,33 @@ export function Chart(props: {
     }
     if (chartType == "table") {
       return (
-        <Table>
-          <TableCaption>{props.title}</TableCaption>
-          <TableHeader>
-            <TableRow>
-              {queryResult.columns.map((col, i) => (
-                <TableCell key={i}>{col}</TableCell>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {queryResult.results.map((row, i) => (
-              <TableRow key={i}>
-                {row.map((cell, j) => (
-                  <TableCell key={j}>{cell}</TableCell>
+        <div className="max-h-[500px] overflow-y-auto">
+          <Table>
+            <TableCaption>{props.title}</TableCaption>
+            <TableHeader>
+              <TableRow>
+                {queryResult.columns.map((col, i) => (
+                  <TableHead key={i}>{col}</TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {queryResult.results.map((row, i) => (
+                <TableRow key={i}>
+                  {row.map((cell, j) => (
+                    <TableCell key={j}>{cell}</TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       );
     }
   } catch (error) {
     console.log(error, props);
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center">
         <Card>
           <p className="text-tremor-default font-medium text-tremor-content dark:text-dark-tremor-content">
             Error rendering chart
