@@ -24,6 +24,11 @@ pnpm install
 pnpm dev
 ```
 
+## Known problems:
+
+- GPT returns the wrong casing for HogQL functions i.e AVG( instead of avg(
+- The context window can be too small
+
 Your app should now be running on [localhost:3000](http://localhost:3000/).
 
 ## Authors
